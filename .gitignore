@@ -1,0 +1,18 @@
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/
+.idea/
+build/
+dist/
+*.bin
+*.elf
+*.map
+*.log
+.DS_Store
+Thumbs.db
+
+# never commit credentials — everything lives in NVS on the device
+secrets.h
+secrets.json
+*.local.ini

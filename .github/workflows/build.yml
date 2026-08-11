@@ -1,0 +1,65 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            .pio
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Build
+        run: pio run -e esp32-s3-mini
+
+      - name: Merge factory image
+        run: |
+          set -eu
+          OUT=.pio/build/esp32-s3-mini
+          BOOT_APP0=$(find ~/.platformio/packages/framework-arduinoespressif32/tools/partitions -name boot_app0.bin | head -n1)
+          python -m esptool --chip esp32s3 merge_bin \
+            -o train-button-factory.bin \
+            --flash_mode dio --flash_freq 80m --flash_size 4MB \
+            0x0     "$OUT/bootloader.bin" \
+            0x8000  "$OUT/partitions.bin" \
+            0xe000  "$BOOT_APP0" \
+            0x10000 "$OUT/firmware.bin"
+          cp "$OUT/firmware.bin" train-button-ota.bin
+          ls -l train-button-*.bin
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: train-button-firmware
+          path: train-button-*.bin
+          if-no-files-found: error
+
+      - name: Attach binaries to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" train-button-*.bin --clobber
