@@ -133,8 +133,8 @@ struct Btn {
 static Btn mainBtn, resetBtn;
 
 static void buttonsBegin() {
-  mainBtn.attach(settings.btnPin, settings.btnPullup, true);
-  resetBtn.attach(settings.resetPin, settings.btnPullup, settings.resetOn);
+  mainBtn.attach(PIN_BUTTON, settings.btnPullup, true);
+  resetBtn.attach(PIN_RESET, settings.btnPullup, settings.resetOn);
 }
 
 void deviceApplyHardware() {
@@ -186,8 +186,7 @@ static void reopenSetup() {
 }
 
 static void buttonsLoop() {
-  if (mainBtn.pin != settings.btnPin || mainBtn.pullup != settings.btnPullup ||
-      resetBtn.pin != settings.resetPin || resetBtn.enabled != settings.resetOn) {
+  if (mainBtn.pullup != settings.btnPullup || resetBtn.enabled != settings.resetOn) {
     buttonsBegin();
   }
   uint32_t now = millis();
@@ -235,7 +234,7 @@ static void startSetupMode() {
 static bool startStation(uint32_t waitMs) {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
-  WiFi.setHostname(settings.host.c_str());
+  WiFi.setHostname(DEVICE_HOST);
   WiFi.begin(settings.ssid.c_str(), settings.pass.c_str());
 
   uint32_t t0 = millis();
@@ -245,7 +244,7 @@ static bool startStation(uint32_t waitMs) {
       state.setupMode = false;
       UNLOCK();
       Serial.printf("[wifi] connected, http://%s.local (%s)\n",
-                    settings.host.c_str(), WiFi.localIP().toString().c_str());
+                    DEVICE_HOST, WiFi.localIP().toString().c_str());
       configTime(0, 0, "pool.ntp.org", "time.cloudflare.com");
       return true;
     }

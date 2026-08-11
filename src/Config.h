@@ -3,6 +3,16 @@
 
 #define FW_VERSION "1.0.0"
 
+// The device answers at http://trainbutton.local once it is on your network.
+#define DEVICE_HOST "trainbutton"
+
+// Fixed wiring. Not configurable at runtime on purpose — a wrong pin typed into
+// a browser can only ever break the device. See README.md.
+#define PIN_BUTTON 4   // switch, other leg to GND
+#define PIN_LED    5   // LED ring, through a series resistor to GND
+#define PIN_RESET  6   // optional second switch, other leg to GND
+#define PIN_RGB    48  // the board's own WS2812, if it has one
+
 // LED pattern modes, shared between config and the LED engine.
 enum LedMode : uint8_t {
   LED_OFF     = 0,
@@ -15,7 +25,6 @@ struct Settings {
   // --- network ---
   String   ssid;
   String   pass;
-  String   host     = "trainbutton";   // mDNS name + AP suffix
 
   // --- backend ---
   String   base     = "https://data.unserioes24.de";
@@ -41,24 +50,15 @@ struct Settings {
   uint8_t  errBright   = 100;
   bool     instantError = true;       // blink before the server answers
 
-  // --- hardware ---
-  uint8_t  btnPin     = 4;            // button switch
-  uint8_t  ledPin     = 5;            // single-colour LED ring in the button
-  uint8_t  rgbPin     = 48;           // the board's own WS2812, if it has one
-  bool     btnPullup  = true;         // button shorts to GND
+  // --- hardware behaviour (the pins themselves are fixed above) ---
+  bool     btnPullup  = true;         // switch shorts to GND
   bool     ledInvert  = false;
   bool     rgbOn      = false;        // off by default — not every board has one
   uint16_t debounceMs = 40;
-  uint8_t  holdSec    = 5;            // hold the main button this long to force setup mode
+  uint8_t  holdSec    = 5;            // hold the main button this long for setup mode
 
-  // Optional second button, wired the same way as the main one.
-  bool     resetOn  = false;
-  uint8_t  resetPin = 6;
-  uint8_t  wipeSec  = 8;              // hold the reset button this long for a factory reset
-
-  // --- web UI access ---
-  String   uiUser = "admin";
-  String   uiPass;                     // empty = no login required
+  bool     resetOn = false;           // an optional second button is wired up
+  uint8_t  wipeSec = 8;               // hold it this long to clear the credentials
 };
 
 extern Settings settings;
@@ -66,11 +66,11 @@ extern Settings settings;
 void configLoad();
 void configSave();
 
-// Clears Wi-Fi network and password, the backend token, the server address and
-// the web UI password. LED patterns and pin assignments survive.
+// Clears Wi-Fi network and password, the backend token and the server address.
+// LED patterns and hardware behaviour survive.
 void configResetCredentials();
 
-// Wipes the whole NVS namespace, including LED and hardware settings.
+// Wipes the whole NVS namespace.
 void configFactoryReset();
 
 // Clamps every numeric field into a range the firmware can actually run with.

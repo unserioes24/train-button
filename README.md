@@ -39,7 +39,7 @@ Hardware:
 
 | Wire | Pad | Notes |
 | --- | --- | --- |
-| Switch A | **GPIO 6** | pin is configurable |
+| Switch A | **GPIO 6** | enable it under Hardware |
 | Switch B | **GND** | |
 
 ```
@@ -63,8 +63,11 @@ Notes:
 - Needs more current, or the LED is rated 5 V/12 V? Drive it through a small N-channel
   MOSFET (AO3400, 2N7000): gate to GPIO 5, source to GND, drain to LED −, LED + to the
   matching supply rail.
-- Both pins are configurable in the web interface. Keep away from GPIO 0, 19, 20, 26–32,
-  43, 44, 45 and 46 — they are used for boot straps, USB, flash and UART.
+- The pins are fixed in `src/Config.h` (`PIN_BUTTON`, `PIN_LED`, `PIN_RESET`, `PIN_RGB`)
+  and shown read-only in the web interface. Changing one means editing that file and
+  reflashing — a pin number typed into a browser can only ever break the device. If you
+  do change them, keep away from GPIO 0, 19, 20, 26–32, 43, 44, 45 and 46: boot straps,
+  USB, flash and UART live there.
 - The board carries a tiny WS2812 RGB LED of its own (GPIO 48 on most of these boards).
   It is a separate part from the button's single-colour ring and can act as a status
   light: amber in setup mode, red without Wi-Fi, teal when the train is ready, violet
@@ -103,11 +106,10 @@ release **BOOT**, then flash.
    so there is nothing to look up.
 2. Connect. The configuration page opens by itself (captive portal); otherwise browse to
    `http://192.168.4.1`.
-3. On the **Setup** page, first name the device and set a password for the page, then
-   enter your Wi-Fi below it.
+3. The **Setup** page holds everything the button needs — network, Wi-Fi password, server
+   address and token. Fill it in and press **Save and connect**.
 4. The device restarts and joins your network. From then on it is reachable at
    `http://trainbutton.local` (or by IP — the serial monitor prints it).
-5. Add your token under **Server**.
 
 The access point only exists while the device has no working Wi-Fi connection.
 
@@ -118,9 +120,9 @@ The access point only exists while the device has no working Wi-Fi connection.
 | Hold the main button 5 s | Wi-Fi network and password, reopens setup mode |
 | Hold the reset button 8 s (if wired) | Wi-Fi, password, token and server address |
 | **Reset Wi-Fi, token and server** in the web interface | same as the reset button |
-| **Factory reset** in the web interface | everything, including LED patterns and pins |
+| **Factory reset** in the web interface | everything, including the LED patterns |
 
-Both hold times are configurable under Hardware.
+Both hold times are adjustable under Hardware.
 
 ## What the LED does
 
@@ -161,8 +163,7 @@ Base URL is configurable; the device appends the paths itself.
 
 ## Device API
 
-The web interface talks to the device over these routes. All of them require the optional
-UI password when one is set.
+The web interface talks to the device over these routes.
 
 | Method | Route | Purpose |
 | --- | --- | --- |
@@ -178,18 +179,16 @@ UI password when one is set.
 
 ## Security
 
-- Wi-Fi password, backend token and UI password live in NVS on the device. None of them
-  are in this repository, and `GET /api/config` returns the token only as its last four
-  characters.
+- The Wi-Fi password and the backend token live in NVS on the device. Neither is in this
+  repository, and `GET /api/config` returns the token only as its last four characters.
 - The setup access point is open on purpose — a factory device cannot hand you a password.
   It is only up while no Wi-Fi is configured, and anyone within radio range during those
   minutes could reach the configuration page. Set it up somewhere you trust.
-- The web interface can require HTTP basic authentication. That is plain HTTP on your own
-  network — enough to keep housemates out, not something to expose to the internet.
+- The web interface has no login. Anyone on your network who can reach the device can
+  reconfigure it, so keep it on a network you trust and never port-forward it.
 - TLS certificates are not verified. The token is the only secret sent to the backend, and
   certificate pinning would break the device on every renewal. Do not put anything else
   behind that token.
-- Never port-forward the device.
 
 ## Project layout
 

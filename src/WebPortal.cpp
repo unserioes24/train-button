@@ -18,13 +18,6 @@ static DNSServer dns;
 static bool      dnsRunning = false;
 
 // --------------------------------------------------------------------- helpers
-static bool guard() {
-  if (settings.uiPass.isEmpty()) return true;
-  if (server.authenticate(settings.uiUser.c_str(), settings.uiPass.c_str())) return true;
-  server.requestAuthentication();
-  return false;
-}
-
 static void sendJson(int code, const JsonDocument& doc) {
   String out;
   serializeJson(doc, out);
@@ -52,13 +45,11 @@ static bool readBody(JsonDocument& doc) {
 
 // --------------------------------------------------------------------- routes
 static void handleRoot() {
-  if (!guard()) return;
   server.sendHeader("Cache-Control", "no-store");
   server.send_P(200, "text/html; charset=utf-8", WEB_PAGE_HTML);
 }
 
 static void handleState() {
-  if (!guard()) return;
   DeviceState s   = deviceSnapshot();
   bool        sta = WiFi.status() == WL_CONNECTED;
 
@@ -70,7 +61,7 @@ static void handleState() {
   w["ssid"]      = s.setupMode ? WiFi.softAPSSID() : settings.ssid;
   w["rssi"]      = sta ? WiFi.RSSI() : 0;
   w["ip"]        = sta ? WiFi.localIP().toString() : WiFi.softAPIP().toString();
-  w["host"]      = settings.host;
+  w["host"]      = DEVICE_HOST;
 
   JsonObject a = d["api"].to<JsonObject>();
   a["configured"]        = s.api.configured;
@@ -112,13 +103,19 @@ static void handleState() {
 }
 
 static void handleGetConfig() {
-  if (!guard()) return;
   JsonDocument d;
   d["ssid"] = settings.ssid;
-  d["host"] = settings.host;
+  d["host"] = DEVICE_HOST;
   d["base"] = settings.base;
 
   // The token itself never leaves the device.
+  // Pins are compile-time constants; reported for display only.
+  JsonObject pins = d["pins"].to<JsonObject>();
+  pins["button"] = PIN_BUTTON;
+  pins["led"]    = PIN_LED;
+  pins["reset"]  = PIN_RESET;
+  pins["rgb"]    = PIN_RGB;
+
   d["hasToken"] = settings.token.length() > 0;
   d["tokenHint"] = settings.token.length() > 4
                        ? "…" + settings.token.substring(settings.token.length() - 4)
@@ -140,20 +137,13 @@ static void handleGetConfig() {
   d["errMs"]       = settings.errMs;
   d["errBright"]   = settings.errBright;
   d["instantError"] = settings.instantError;
-
-  d["btnPin"]     = settings.btnPin;
-  d["ledPin"]     = settings.ledPin;
-  d["rgbPin"]     = settings.rgbPin;
   d["btnPullup"]  = settings.btnPullup;
   d["ledInvert"]  = settings.ledInvert;
   d["rgbOn"]      = settings.rgbOn;
   d["debounceMs"] = settings.debounceMs;
   d["holdSec"]    = settings.holdSec;
   d["resetOn"]    = settings.resetOn;
-  d["resetPin"]   = settings.resetPin;
   d["wipeSec"]    = settings.wipeSec;
-  d["uiUser"]    = settings.uiUser;
-  d["uiLocked"]  = settings.uiPass.length() > 0;
   sendJson(200, d);
 }
 
@@ -193,7 +183,6 @@ static bool applyFlag(JsonDocument& b, const char* k, bool& dst) {
 }
 
 static void handlePostConfig() {
-  if (!guard()) return;
   JsonDocument body;
   if (!readBody(body)) return sendErr(400, "Invalid JSON");
 
@@ -204,14 +193,8 @@ static void handlePostConfig() {
 
   netChanged |= applyStr(body, "ssid", settings.ssid);
   netChanged |= applyStr(body, "pass", settings.pass);
-  // The hostname is applied before the next Wi-Fi connect, so saving it during
-  // setup must not bounce the device out from under the person configuring it.
-  applyStr(body, "host", settings.host);
   applyStr(body, "base", settings.base);
   applyStr(body, "token", settings.token);
-  applyStr(body, "uiUser", settings.uiUser);
-  if (body["uiPass"].is<const char*>()) settings.uiPass = body["uiPass"].as<String>();
-  if (body["clearUiAuth"] | false) settings.uiPass = "";
 
   applyU16(body, "pollSec", settings.pollSec);
   applyU16(body, "timeoutSec", settings.timeoutSec);
@@ -228,14 +211,9 @@ static void handlePostConfig() {
   applyU16(body, "errMs", settings.errMs);
   applyU8(body, "errBright", settings.errBright);
   applyFlag(body, "instantError", settings.instantError);
-
-  hwChanged |= applyU8(body, "btnPin", settings.btnPin);
-  hwChanged |= applyU8(body, "ledPin", settings.ledPin);
-  hwChanged |= applyU8(body, "rgbPin", settings.rgbPin);
   hwChanged |= applyU16(body, "debounceMs", settings.debounceMs);
   applyU8(body, "holdSec", settings.holdSec);
   applyU8(body, "wipeSec", settings.wipeSec);
-  hwChanged |= applyU8(body, "resetPin", settings.resetPin);
   hwChanged |= applyFlag(body, "resetOn", settings.resetOn);
   hwChanged |= applyFlag(body, "btnPullup", settings.btnPullup);
   hwChanged |= applyFlag(body, "ledInvert", settings.ledInvert);
@@ -252,7 +230,6 @@ static void handlePostConfig() {
 }
 
 static void handleScan() {
-  if (!guard()) return;
   int n = WiFi.scanNetworks(false, false);
   JsonDocument d;
   JsonArray    arr = d["networks"].to<JsonArray>();
@@ -268,7 +245,6 @@ static void handleScan() {
 }
 
 static void handlePress() {
-  if (!guard()) return;
   DeviceState s = deviceSnapshot();
   if (settings.instantError && s.api.configured && s.api.ok && !s.api.canPress) {
     led.play(LED_BLINK, settings.errBright, settings.errMs,
@@ -282,7 +258,6 @@ static void handlePress() {
 }
 
 static void handleLedTest() {
-  if (!guard()) return;
   JsonDocument body;
   if (!readBody(body)) return sendErr(400, "Invalid JSON");
   String p = body["pattern"] | "ready";
@@ -305,7 +280,6 @@ static void handleLedTest() {
 }
 
 static void handleTestConnection() {
-  if (!guard()) return;
   ApiState st;
   bool     ok = TrainApi::fetchStatus(deviceApiConfig(), st);
   JsonDocument d;
@@ -319,13 +293,11 @@ static void handleTestConnection() {
 }
 
 static void handleReboot() {
-  if (!guard()) return;
   sendOk(true);
   deviceScheduleReboot(600);
 }
 
 static void handleResetCredentials() {
-  if (!guard()) return;
   sendOk(true);
   deviceLock();
   configResetCredentials();
@@ -334,7 +306,6 @@ static void handleResetCredentials() {
 }
 
 static void handleFactoryReset() {
-  if (!guard()) return;
   sendOk(true);
   deviceFactoryReset();
 }
@@ -369,7 +340,7 @@ void portalBegin() {
     dns.setErrorReplyCode(DNSReplyCode::NoError);
     dns.start(53, "*", WiFi.softAPIP());
     dnsRunning = true;
-  } else if (MDNS.begin(settings.host.c_str())) {
+  } else if (MDNS.begin(DEVICE_HOST)) {
     MDNS.addService("http", "tcp", 80);
   }
 }

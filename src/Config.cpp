@@ -12,16 +12,12 @@ static T clampT(T v, T lo, T hi) { return v < lo ? lo : (v > hi ? hi : v); }
 void configSanitize() {
   Settings d;  // defaults
 
-  settings.host.trim();
-  if (settings.host.isEmpty()) settings.host = d.host;
-  settings.host.replace(' ', '-');
-  if (settings.host.length() > 30) settings.host = settings.host.substring(0, 30);
-
   settings.base.trim();
   while (settings.base.endsWith("/")) settings.base.remove(settings.base.length() - 1);
   if (settings.base.isEmpty()) settings.base = d.base;
   if (!settings.base.startsWith("http://") && !settings.base.startsWith("https://"))
     settings.base = "https://" + settings.base;
+
   settings.pollSec    = clampT<uint16_t>(settings.pollSec, 2, 3600);
   settings.timeoutSec = clampT<uint16_t>(settings.timeoutSec, 2, 30);
 
@@ -43,26 +39,15 @@ void configSanitize() {
 
   settings.debounceMs = clampT<uint16_t>(settings.debounceMs, 5, 1000);
   settings.holdSec    = clampT<uint8_t>(settings.holdSec, 2, 60);
-
-  if (settings.btnPin > 48) settings.btnPin = d.btnPin;
-  if (settings.ledPin > 48) settings.ledPin = d.ledPin;
-  if (settings.rgbPin > 48) settings.rgbPin = d.rgbPin;
-  if (settings.ledPin == settings.btnPin) settings.ledPin = d.ledPin;
-  if (settings.resetPin > 48 || settings.resetPin == settings.btnPin ||
-      settings.resetPin == settings.ledPin) settings.resetOn = false;
-  settings.wipeSec = clampT<uint8_t>(settings.wipeSec, 2, 60);
-
-  settings.uiUser.trim();
-  if (settings.uiUser.isEmpty()) settings.uiUser = d.uiUser;
+  settings.wipeSec    = clampT<uint8_t>(settings.wipeSec, 2, 60);
 }
 
 void configLoad() {
   Settings d;
   prefs.begin(NS, true);
 
-  settings.ssid   = prefs.getString("ssid", d.ssid);
-  settings.pass   = prefs.getString("pass", d.pass);
-  settings.host   = prefs.getString("host", d.host);
+  settings.ssid = prefs.getString("ssid", d.ssid);
+  settings.pass = prefs.getString("pass", d.pass);
 
   settings.base       = prefs.getString("base", d.base);
   settings.token      = prefs.getString("token", d.token);
@@ -86,21 +71,14 @@ void configLoad() {
   settings.errBright    = prefs.getUChar("errBri", d.errBright);
   settings.instantError = prefs.getBool("instantErr", d.instantError);
 
-  settings.btnPin     = prefs.getUChar("btnPin", d.btnPin);
-  settings.ledPin     = prefs.getUChar("ledPin", d.ledPin);
-  settings.rgbPin     = prefs.getUChar("rgbPin", d.rgbPin);
   settings.btnPullup  = prefs.getBool("btnPullup", d.btnPullup);
   settings.ledInvert  = prefs.getBool("ledInvert", d.ledInvert);
   settings.rgbOn      = prefs.getBool("rgbOn", d.rgbOn);
   settings.debounceMs = prefs.getUShort("debounce", d.debounceMs);
   settings.holdSec    = prefs.getUChar("holdSec", d.holdSec);
 
-  settings.resetOn  = prefs.getBool("resetOn", d.resetOn);
-  settings.resetPin = prefs.getUChar("resetPin", d.resetPin);
-  settings.wipeSec  = prefs.getUChar("wipeSec", d.wipeSec);
-
-  settings.uiUser = prefs.getString("uiUser", d.uiUser);
-  settings.uiPass = prefs.getString("uiPass", d.uiPass);
+  settings.resetOn = prefs.getBool("resetOn", d.resetOn);
+  settings.wipeSec = prefs.getUChar("wipeSec", d.wipeSec);
 
   prefs.end();
   configSanitize();
@@ -112,7 +90,6 @@ void configSave() {
 
   prefs.putString("ssid", settings.ssid);
   prefs.putString("pass", settings.pass);
-  prefs.putString("host", settings.host);
 
   prefs.putString("base", settings.base);
   prefs.putString("token", settings.token);
@@ -136,9 +113,6 @@ void configSave() {
   prefs.putUChar("errBri", settings.errBright);
   prefs.putBool("instantErr", settings.instantError);
 
-  prefs.putUChar("btnPin", settings.btnPin);
-  prefs.putUChar("ledPin", settings.ledPin);
-  prefs.putUChar("rgbPin", settings.rgbPin);
   prefs.putBool("btnPullup", settings.btnPullup);
   prefs.putBool("ledInvert", settings.ledInvert);
   prefs.putBool("rgbOn", settings.rgbOn);
@@ -146,23 +120,17 @@ void configSave() {
   prefs.putUChar("holdSec", settings.holdSec);
 
   prefs.putBool("resetOn", settings.resetOn);
-  prefs.putUChar("resetPin", settings.resetPin);
   prefs.putUChar("wipeSec", settings.wipeSec);
-
-  prefs.putString("uiUser", settings.uiUser);
-  prefs.putString("uiPass", settings.uiPass);
 
   prefs.end();
 }
 
 void configResetCredentials() {
   Settings d;
-  settings.ssid   = d.ssid;
-  settings.pass   = d.pass;
-  settings.token  = d.token;
-  settings.base   = d.base;
-  settings.uiPass = d.uiPass;
-  settings.uiUser = d.uiUser;
+  settings.ssid  = d.ssid;
+  settings.pass  = d.pass;
+  settings.token = d.token;
+  settings.base  = d.base;
   configSave();
 }
 

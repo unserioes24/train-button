@@ -146,6 +146,10 @@ body::after{
 .f>label{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .f .sub{font-size:12px;color:var(--dim);line-height:1.5}
 .f code{font-family:var(--mono);color:var(--muted)}
+.split{height:1px;background:var(--line);margin:20px 0}
+.split-label{display:flex;align-items:center;gap:12px;margin:22px 0 16px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.split-label::after{content:"";height:1px;flex:1;background:var(--line)}
 input[type=text],input[type=password],input[type=number],select{
   width:100%;background:rgba(6,5,15,.66);border:1px solid var(--line);border-radius:11px;
   color:var(--text);font-family:var(--mono);font-size:14px;padding:11px 13px;transition:border-color .2s,box-shadow .2s}
@@ -286,58 +290,31 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
 
   <nav class="tabs" role="tablist" id="tabs">
     <button role="tab" data-t="start" aria-selected="true">Setup</button>
-    <button role="tab" data-t="api" aria-selected="false">Server</button>
     <button role="tab" data-t="led" aria-selected="false">LED</button>
     <button role="tab" data-t="hw" aria-selected="false">Hardware</button>
     <button role="tab" data-t="sys" aria-selected="false">System</button>
   </nav>
 
-  <!-- Wi-Fi -->
+  <!-- Setup: everything the button needs to work, saved in one go -->
   <section id="p-start">
     <div class="card">
-      <h3>1 · Name and password</h3>
-      <p class="hint">The name becomes the address you reach the device at. The password protects this page — set one now and the browser will ask for it from the next click on.</p>
-      <div class="grid">
-        <div class="f"><label for="host">Device name</label>
-          <input type="text" id="host" placeholder="trainbutton" maxlength="30">
-          <span class="sub">Reachable at <span id="hostPreview">trainbutton</span>.local after the next restart.</span>
-        </div>
-        <div class="f"><label for="uiUser">Username</label>
-          <input type="text" id="uiUser" placeholder="admin" autocomplete="username">
-        </div>
-        <div class="f"><label for="uiPass">Password</label>
-          <input type="password" id="uiPass" placeholder="leave empty to keep" autocomplete="new-password">
-          <span class="sub">Optional, and plain HTTP on your own network — enough to keep housemates out, not something to expose to the internet.</span>
-        </div>
-      </div>
-      <div class="row"><button class="btn primary" data-save="device">Save name and password</button>
-        <button class="btn ghost" type="button" id="btnNoAuth">Remove password</button>
-        <span class="note" id="authState"></span></div>
-    </div>
+      <h3>Connection</h3>
+      <p class="hint">Network and backend in one step. Saving stores all four values and restarts the device so it can join the network.</p>
 
-    <div class="card">
-      <h3>2 · Wi-Fi</h3>
-      <p class="hint">Saving restarts the device so it can join the network. If the network is out of reach, it opens its own setup access point again.</p>
+      <div class="split-label">Wi-Fi</div>
       <div class="grid">
         <div class="f"><label for="ssid">Network (SSID)</label>
           <div class="inline"><input type="text" id="ssid" autocomplete="off" spellcheck="false" placeholder="My-WiFi">
           <button class="btn ghost" id="btnScan" type="button">Scan</button></div>
         </div>
-        <div class="f"><label for="pass">Password</label>
+        <div class="f"><label for="pass">Wi-Fi password</label>
           <input type="password" id="pass" autocomplete="off" placeholder="leave empty to keep">
           <span class="sub">An empty field keeps the stored password.</span>
         </div>
       </div>
       <div class="nets" id="nets" hidden></div>
-      <div class="row"><button class="btn primary" data-save="wifi">Save Wi-Fi</button></div>
-    </div>
-  </section>
 
-  <!-- Server -->
-  <section id="p-api" hidden>
-    <div class="card">
-      <h3>Server and token</h3>
-      <p class="hint">The token identifies your account. It is stored on the device only and never sent back to this page.</p>
+      <div class="split-label">Server</div>
       <div class="grid">
         <div class="f wide"><label for="base">Server address</label>
           <input type="text" id="base" placeholder="https://data.unserioes24.de" spellcheck="false" autocomplete="off">
@@ -350,17 +327,10 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
           </div>
           <span class="sub" id="tokState">—</span>
         </div>
-        <div class="f"><label for="poll">Poll interval</label>
-          <div class="rangerow"><input type="range" id="poll" min="2" max="60" step="1"><output id="pollOut">5 s</output></div>
-          <span class="sub">How often the button asks whether the train may run.</span>
-        </div>
-        <div class="f"><label for="timeout">Request timeout</label>
-          <div class="rangerow"><input type="range" id="timeout" min="2" max="20" step="1"><output id="timeoutOut">8 s</output></div>
-          <span class="sub">After this, a request counts as failed.</span>
-        </div>
       </div>
+
       <div class="row">
-        <button class="btn primary" data-save="api">Save server</button>
+        <button class="btn primary" data-save="setup">Save and connect</button>
         <button class="btn" type="button" id="btnTestApi">Test connection</button>
       </div>
     </div>
@@ -457,24 +427,26 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
   <section id="p-hw" hidden>
     <div class="card">
       <h3>Wiring</h3>
-      <p class="hint">Default for the ESP32-S3 Mini: switch on GPIO 4 and GND, LED on GPIO 5 through a series resistor to GND.</p>
+      <p class="hint">The pins are fixed in the firmware — a wrong number typed here could only break the device. Each switch goes to its GPIO and GND, the LED to its GPIO through a series resistor to GND.</p>
       <div class="grid">
-        <div class="f"><label for="btnPin">Switch pin</label><input type="number" id="btnPin" min="0" max="48"></div>
-        <div class="f"><label for="ledPin">LED pin</label><input type="number" id="ledPin" min="0" max="48"></div>
+        <div class="f"><label>Switch</label><div class="tag" id="pinButton">GPIO 4</div></div>
+        <div class="f"><label>LED</label><div class="tag" id="pinLed">GPIO 5</div></div>
+        <div class="f"><label>Reset button</label><div class="tag" id="pinReset">GPIO 6</div></div>
+        <div class="f"><label>Board RGB LED</label><div class="tag" id="pinRgb">GPIO 48</div></div>
+      </div>
+      <div class="split"></div>
+      <div class="grid">
         <div class="f"><label for="debounce">Debounce</label>
           <div class="rangerow"><input type="range" id="debounce" min="10" max="200" step="5"><output id="debounceOut">40 ms</output></div>
         </div>
         <div class="f"><label for="holdSec">Hold to reopen setup</label>
           <div class="rangerow"><input type="range" id="holdSec" min="3" max="20" step="1"><output id="holdSecOut">5 s</output></div>
-          <span class="sub">Hold the button this long to clear Wi-Fi and open the setup access point.</span>
+          <span class="sub">Hold the main button this long to clear Wi-Fi and open the setup access point.</span>
         </div>
         <div class="f wide"><label class="sw"><input type="checkbox" id="btnPullup"><i></i><span>Switch shorts to GND (internal pull-up)</span></label></div>
         <div class="f wide"><label class="sw"><input type="checkbox" id="ledInvert"><i></i><span>LED is inverted (lights up on LOW)</span></label></div>
         <div class="f wide"><label class="sw"><input type="checkbox" id="rgbOn"><i></i><span>Use the board's own RGB LED as a status light</span></label>
           <span class="sub">This is the tiny WS2812 soldered on the ESP32 board, not the button's LED. Leave it off if your board does not have one.</span>
-        </div>
-        <div class="f"><label for="rgbPin">Board RGB LED pin</label><input type="number" id="rgbPin" min="0" max="48">
-          <span class="sub">Usually 48 on the ESP32-S3 Mini, 21 on some boards.</span>
         </div>
       </div>
       <div class="row"><button class="btn primary" data-save="hw">Save hardware</button>
@@ -486,9 +458,6 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
       <p class="hint">An optional second push button. Holding it clears the Wi-Fi network and password, the token and the server address — LED patterns and pin assignments stay. Wire it exactly like the main switch: one leg to its GPIO, the other to GND.</p>
       <div class="grid">
         <div class="f wide"><label class="sw"><input type="checkbox" id="resetOn"><i></i><span>A reset button is connected</span></label></div>
-        <div class="f"><label for="resetPin">Reset button pin</label><input type="number" id="resetPin" min="0" max="48">
-          <span class="sub">Must differ from the switch and LED pin.</span>
-        </div>
         <div class="f"><label for="wipeSec">Hold to reset</label>
           <div class="rangerow"><input type="range" id="wipeSec" min="2" max="30" step="1"><output id="wipeSecOut">8 s</output></div>
           <span class="sub">The LED strobes while the reset runs, then the device restarts into setup mode.</span>
@@ -500,6 +469,22 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
 
   <!-- System -->
   <section id="p-sys" hidden>
+    <div class="card">
+      <h3>Polling</h3>
+      <p class="hint">How the device talks to the backend.</p>
+      <div class="grid">
+        <div class="f"><label for="poll">Poll interval</label>
+          <div class="rangerow"><input type="range" id="poll" min="2" max="60" step="1"><output id="pollOut">5 s</output></div>
+          <span class="sub">How often the button asks whether the train may run.</span>
+        </div>
+        <div class="f"><label for="timeout">Request timeout</label>
+          <div class="rangerow"><input type="range" id="timeout" min="2" max="20" step="1"><output id="timeoutOut">8 s</output></div>
+          <span class="sub">After this, a request counts as failed.</span>
+        </div>
+      </div>
+      <div class="row"><button class="btn primary" data-save="poll">Save polling</button></div>
+    </div>
+
     <div class="card">
       <h3>Device</h3>
       <div class="grid">
@@ -551,10 +536,11 @@ function ago(s){
 }
 
 /* ---- tabs ---- */
+const TABS = ['start','led','hw','sys'];
 $('#tabs').addEventListener('click', e => {
   const b = e.target.closest('button[data-t]'); if(!b) return;
   document.querySelectorAll('#tabs button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
-  ['start','api','led','hw','sys'].forEach(t => $('#p-'+t).hidden = (t !== b.dataset.t));
+  TABS.forEach(t => $('#p-'+t).hidden = (t !== b.dataset.t));
 });
 
 /* ---- range labels ---- */
@@ -584,11 +570,7 @@ let cfg = {};
 async function loadConfig(){
   cfg = await api('/api/config');
   $('#ssid').value = cfg.ssid || '';
-  $('#host').value = cfg.host || 'trainbutton';
-  $('#hostPreview').textContent = cfg.host || 'trainbutton';
   $('#base').value = cfg.base || '';
-  $('#uiUser').value = cfg.uiUser || '';
-  $('#authState').textContent = cfg.uiLocked ? 'Password protection is on.' : 'No password set.';
   $('#tokState').textContent = cfg.hasToken
     ? 'Token stored (' + (cfg.tokenHint || '••••') + ')'
     : 'No token stored yet.';
@@ -598,10 +580,12 @@ async function loadConfig(){
   set('idleBright', cfg.idleBright); set('idleMs', cfg.idleMs);
   set('pressSec', cfg.pressSec); set('pressMs', cfg.pressMs); set('pressBright', cfg.pressBright);
   set('errSec', cfg.errSec); set('errMs', cfg.errMs); set('errBright', cfg.errBright);
-  set('btnPin', cfg.btnPin); set('ledPin', cfg.ledPin); set('rgbPin', cfg.rgbPin);
   set('debounce', cfg.debounceMs); set('holdSec', cfg.holdSec); set('wipeSec', cfg.wipeSec);
-  set('resetPin', cfg.resetPin);
-  $('#resetOn').checked = !!cfg.resetOn;
+  const pins = cfg.pins || {};
+  $('#pinButton').textContent = 'GPIO ' + pins.button;
+  $('#pinLed').textContent    = 'GPIO ' + pins.led;
+  $('#pinReset').textContent  = 'GPIO ' + pins.reset;
+  $('#pinRgb').textContent    = 'GPIO ' + pins.rgb;
   const radio = (name, v) => {
     const r = document.querySelector('input[name="'+name+'"][value="'+v+'"]'); if(r) r.checked = true;
   };
@@ -610,28 +594,20 @@ async function loadConfig(){
   $('#btnPullup').checked = !!cfg.btnPullup;
   $('#ledInvert').checked = !!cfg.ledInvert;
   $('#rgbOn').checked = !!cfg.rgbOn;
+  $('#resetOn').checked = !!cfg.resetOn;
   paintSegs();
 }
-$('#host').addEventListener('input', e => $('#hostPreview').textContent = e.target.value || 'trainbutton');
 
 function collect(group){
   const num = id => Number($('#'+id).value);
   const radio = n => Number((document.querySelector('input[name="'+n+'"]:checked') || {}).value || 0);
-  if(group === 'device'){
-    const o = { host:$('#host').value.trim(), uiUser:$('#uiUser').value.trim() };
-    if($('#uiPass').value) o.uiPass = $('#uiPass').value;
-    return o;
-  }
-  if(group === 'wifi'){
-    const o = { ssid:$('#ssid').value.trim() };
+  if(group === 'setup'){
+    const o = { ssid:$('#ssid').value.trim(), base:$('#base').value.trim() };
     if($('#pass').value) o.pass = $('#pass').value;
-    return o;
-  }
-  if(group === 'api'){
-    const o = { base:$('#base').value.trim(), pollSec:num('poll'), timeoutSec:num('timeout') };
     if($('#token').value) o.token = $('#token').value.trim();
     return o;
   }
+  if(group === 'poll') return { pollSec:num('poll'), timeoutSec:num('timeout') };
   if(group === 'led') return {
     readyMode:radio('readyMode'), readyBright:num('readyBright'), readyMs:num('readyMs'),
     idleMode:radio('idleMode'), idleBright:num('idleBright'), idleMs:num('idleMs'),
@@ -640,14 +616,10 @@ function collect(group){
     instantError:$('#instant').checked
   };
   if(group === 'hw') return {
-    btnPin:num('btnPin'), ledPin:num('ledPin'), rgbPin:num('rgbPin'),
     debounceMs:num('debounce'), holdSec:num('holdSec'),
     btnPullup:$('#btnPullup').checked, ledInvert:$('#ledInvert').checked, rgbOn:$('#rgbOn').checked
   };
-  if(group === 'reset') return {
-    resetOn:$('#resetOn').checked, resetPin:num('resetPin'), wipeSec:num('wipeSec')
-  };
-
+  if(group === 'reset') return { resetOn:$('#resetOn').checked, wipeSec:num('wipeSec') };
   return {};
 }
 document.addEventListener('click', async e => {
@@ -655,7 +627,7 @@ document.addEventListener('click', async e => {
   b.disabled = true;
   try{
     const res = await api('/api/config', {method:'POST', body:JSON.stringify(collect(b.dataset.save))});
-    $('#pass').value = ''; $('#token').value = ''; $('#uiPass').value = '';
+    $('#pass').value = ''; $('#token').value = '';
     if(res && res.reboot){
       toast('Saved. The device restarts and joins the network.', 'ok');
     } else {
@@ -763,13 +735,6 @@ $('#btnReset').addEventListener('click', async () => {
   try{ await api('/api/factory-reset', {method:'POST'}); toast('Reset. The device restarts.', 'ok'); }
   catch(err){ toast('Failed: ' + err.message, 'err'); }
 });
-$('#btnNoAuth').addEventListener('click', async () => {
-  if(!confirm('Remove the password protection for this page?')) return;
-  try{
-    await api('/api/config', {method:'POST', body:JSON.stringify({clearUiAuth:true})});
-    $('#uiPass').value = ''; await loadConfig(); toast('Password removed.', 'ok');
-  }catch(err){ toast('Failed: ' + err.message, 'err'); }
-});
 
 /* ---- live state ---- */
 const RING_LEN = 653.45;
@@ -819,7 +784,7 @@ function render(s){
   if(s.setup){
     accent = 'var(--amber)'; eye = 'Setup';
     head = 'Connect the button to your <em>Wi-Fi</em>';
-    sub = 'Enter your network under Wi-Fi and your token under Server. The device then restarts and joins your network.';
+    sub = 'Fill in the network and your token below, then save. The device restarts and joins your network.';
     setRing(0, 'var(--amber)');
   } else if(!w.connected){
     accent = 'var(--red)'; eye = 'Offline';
@@ -829,7 +794,7 @@ function render(s){
   } else if(!a.configured){
     accent = 'var(--amber)'; eye = 'Token missing';
     head = 'No <em>token</em> stored';
-    sub = 'Without a token the device cannot ask whether the train may run. Add it under Server.';
+    sub = 'Without a token the device cannot ask whether the train may run. Add it under Setup.';
     setRing(0, 'var(--amber)');
   } else if(!a.ok){
     accent = 'var(--red)'; eye = 'Server';

@@ -12,14 +12,14 @@ void LedEngine::begin() {
 }
 
 void LedEngine::applyPins() {
-  if (attachedPin_ != 255 && attachedPin_ != settings.ledPin) {
+  if (attachedPin_ != 255) {
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
     ledcDetach(attachedPin_);
 #else
     ledcDetachPin(attachedPin_);
 #endif
   }
-  attachedPin_    = settings.ledPin;
+  attachedPin_    = PIN_LED;
   attachedInvert_ = settings.ledInvert;
   lastDuty_       = 0xFFFF;
 
@@ -99,7 +99,7 @@ uint16_t LedEngine::levelFor(const Pattern& p, uint32_t now) const {
 }
 
 void LedEngine::update() {
-  if (attachedPin_ != settings.ledPin || attachedInvert_ != settings.ledInvert) applyPins();
+  if (attachedInvert_ != settings.ledInvert) applyPins();
 
   uint32_t now = millis();
   if (overrideUntil_ && (int32_t)(now - overrideUntil_) >= 0) overrideUntil_ = 0;
@@ -136,12 +136,12 @@ void rgbStatus(uint8_t r, uint8_t g, uint8_t b) {
     if (inited) { rgbWrite(pin, 0, 0, 0); inited = false; }
     return;
   }
-  if (!inited || pin != settings.rgbPin) {
-    pin    = settings.rgbPin;
+  if (!inited) {
+    pin    = PIN_RGB;
     inited = true;
     lr = lg = lb = 255;
   }
   if (r == lr && g == lg && b == lb) return;
   lr = r; lg = g; lb = b;
-  neopixelWrite(pin, r, g, b);
+  rgbWrite(pin, r, g, b);
 }
