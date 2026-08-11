@@ -285,7 +285,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
   </dl>
 
   <nav class="tabs" role="tablist" id="tabs">
-    <button role="tab" data-t="wifi" aria-selected="true">Wi-Fi</button>
+    <button role="tab" data-t="start" aria-selected="true">Setup</button>
     <button role="tab" data-t="api" aria-selected="false">Server</button>
     <button role="tab" data-t="led" aria-selected="false">LED</button>
     <button role="tab" data-t="hw" aria-selected="false">Hardware</button>
@@ -293,9 +293,30 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
   </nav>
 
   <!-- Wi-Fi -->
-  <section id="p-wifi">
+  <section id="p-start">
     <div class="card">
-      <h3>Wi-Fi</h3>
+      <h3>1 · Name and password</h3>
+      <p class="hint">The name becomes the address you reach the device at. The password protects this page — set one now and the browser will ask for it from the next click on.</p>
+      <div class="grid">
+        <div class="f"><label for="host">Device name</label>
+          <input type="text" id="host" placeholder="trainbutton" maxlength="30">
+          <span class="sub">Reachable at <span id="hostPreview">trainbutton</span>.local after the next restart.</span>
+        </div>
+        <div class="f"><label for="uiUser">Username</label>
+          <input type="text" id="uiUser" placeholder="admin" autocomplete="username">
+        </div>
+        <div class="f"><label for="uiPass">Password</label>
+          <input type="password" id="uiPass" placeholder="leave empty to keep" autocomplete="new-password">
+          <span class="sub">Optional, and plain HTTP on your own network — enough to keep housemates out, not something to expose to the internet.</span>
+        </div>
+      </div>
+      <div class="row"><button class="btn primary" data-save="device">Save name and password</button>
+        <button class="btn ghost" type="button" id="btnNoAuth">Remove password</button>
+        <span class="note" id="authState"></span></div>
+    </div>
+
+    <div class="card">
+      <h3>2 · Wi-Fi</h3>
       <p class="hint">Saving restarts the device so it can join the network. If the network is out of reach, it opens its own setup access point again.</p>
       <div class="grid">
         <div class="f"><label for="ssid">Network (SSID)</label>
@@ -305,10 +326,6 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
         <div class="f"><label for="pass">Password</label>
           <input type="password" id="pass" autocomplete="off" placeholder="leave empty to keep">
           <span class="sub">An empty field keeps the stored password.</span>
-        </div>
-        <div class="f"><label for="host">Device name</label>
-          <input type="text" id="host" placeholder="trainbutton" maxlength="30">
-          <span class="sub">Reachable at <span id="hostPreview">trainbutton</span>.local</span>
         </div>
       </div>
       <div class="nets" id="nets" hidden></div>
@@ -484,20 +501,6 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
   <!-- System -->
   <section id="p-sys" hidden>
     <div class="card">
-      <h3>Access to this page</h3>
-      <p class="hint">Optional. With a password set, the device asks for it when this page opens.</p>
-      <div class="grid">
-        <div class="f"><label for="uiUser">Username</label><input type="text" id="uiUser" placeholder="admin" autocomplete="off"></div>
-        <div class="f"><label for="uiPass">Password</label><input type="password" id="uiPass" placeholder="leave empty to keep" autocomplete="off">
-          <span class="sub">Basic authentication over plain HTTP — good enough for a home network, not for the open internet.</span>
-        </div>
-      </div>
-      <div class="row"><button class="btn primary" data-save="ui">Save access</button>
-        <button class="btn ghost" type="button" id="btnNoAuth">Remove password</button>
-        <span class="note" id="authState"></span></div>
-    </div>
-
-    <div class="card">
       <h3>Device</h3>
       <div class="grid">
         <div class="f"><label>Firmware</label><div class="tag" id="iFw">—</div></div>
@@ -551,7 +554,7 @@ function ago(s){
 $('#tabs').addEventListener('click', e => {
   const b = e.target.closest('button[data-t]'); if(!b) return;
   document.querySelectorAll('#tabs button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
-  ['wifi','api','led','hw','sys'].forEach(t => $('#p-'+t).hidden = (t !== b.dataset.t));
+  ['start','api','led','hw','sys'].forEach(t => $('#p-'+t).hidden = (t !== b.dataset.t));
 });
 
 /* ---- range labels ---- */
@@ -614,8 +617,13 @@ $('#host').addEventListener('input', e => $('#hostPreview').textContent = e.targ
 function collect(group){
   const num = id => Number($('#'+id).value);
   const radio = n => Number((document.querySelector('input[name="'+n+'"]:checked') || {}).value || 0);
+  if(group === 'device'){
+    const o = { host:$('#host').value.trim(), uiUser:$('#uiUser').value.trim() };
+    if($('#uiPass').value) o.uiPass = $('#uiPass').value;
+    return o;
+  }
   if(group === 'wifi'){
-    const o = { ssid:$('#ssid').value.trim(), host:$('#host').value.trim() };
+    const o = { ssid:$('#ssid').value.trim() };
     if($('#pass').value) o.pass = $('#pass').value;
     return o;
   }
@@ -639,11 +647,7 @@ function collect(group){
   if(group === 'reset') return {
     resetOn:$('#resetOn').checked, resetPin:num('resetPin'), wipeSec:num('wipeSec')
   };
-  if(group === 'ui'){
-    const o = { uiUser:$('#uiUser').value.trim() };
-    if($('#uiPass').value) o.uiPass = $('#uiPass').value;
-    return o;
-  }
+
   return {};
 }
 document.addEventListener('click', async e => {

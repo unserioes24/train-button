@@ -103,9 +103,11 @@ release **BOOT**, then flash.
    so there is nothing to look up.
 2. Connect. The configuration page opens by itself (captive portal); otherwise browse to
    `http://192.168.4.1`.
-3. Enter your Wi-Fi under **Wi-Fi**, then your token under **Server**.
+3. On the **Setup** page, first name the device and set a password for the page, then
+   enter your Wi-Fi below it.
 4. The device restarts and joins your network. From then on it is reachable at
    `http://trainbutton.local` (or by IP — the serial monitor prints it).
+5. Add your token under **Server**.
 
 The access point only exists while the device has no working Wi-Fi connection.
 

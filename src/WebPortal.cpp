@@ -204,7 +204,9 @@ static void handlePostConfig() {
 
   netChanged |= applyStr(body, "ssid", settings.ssid);
   netChanged |= applyStr(body, "pass", settings.pass);
-  netChanged |= applyStr(body, "host", settings.host);
+  // The hostname is applied before the next Wi-Fi connect, so saving it during
+  // setup must not bounce the device out from under the person configuring it.
+  applyStr(body, "host", settings.host);
   applyStr(body, "base", settings.base);
   applyStr(body, "token", settings.token);
   applyStr(body, "uiUser", settings.uiUser);
