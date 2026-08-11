@@ -75,7 +75,8 @@ static void ledShowBase() {
   DeviceState s = deviceSnapshot();
 
   if (s.setupMode) {
-    led.setBase(LED_BREATHE, 60, 2000, "setup");
+    // SOS: unmistakable "I need to be set up", even across the room.
+    led.setBase(LED_SOS, 100, SOS_CYCLE_MS, "setup");
     rgbStatus(60, 30, 0);
     return;
   }
@@ -215,20 +216,32 @@ static void buttonsLoop() {
 static uint32_t wifiRetryAt = 0;
 
 static void startSetupMode() {
+  WiFi.persistent(false);
+  WiFi.disconnect(true, true);
   WiFi.mode(WIFI_AP);
+  delay(100);
+  WiFi.setTxPower(WIFI_POWER_19_5dBm);  // some of these boards ship very quiet
+
   // Read the eFuse MAC — WiFi.macAddress() is still all zeroes this early.
   uint64_t chip = ESP.getEfuseMac();
   char     ap[40];
   snprintf(ap, sizeof(ap), "TrainButton-%02X%02X",
            (uint8_t)(chip >> 32), (uint8_t)(chip >> 40));
-  // Always open — the access point only lives until Wi-Fi is configured,
-  // and a password nobody can look up would just lock you out.
-  WiFi.softAP(ap);
+
+  WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1),
+                    IPAddress(255, 255, 255, 0));
+  // Open, visible, channel 1: the access point only lives until Wi-Fi is
+  // configured, and a password nobody can look up would just lock you out.
+  bool ok = WiFi.softAP(ap, nullptr, 1, 0, 4);
+
   LOCK();
   state.setupMode = true;
   UNLOCK();
-  Serial.printf("[wifi] setup mode - join \"%s\", then open http://%s\n", ap,
+
+  Serial.printf("[wifi] setup mode - join \"%s\" (open), then open http://%s\n", ap,
                 WiFi.softAPIP().toString().c_str());
+  Serial.printf("[wifi] softAP=%s channel=%d mac=%s txpower=%d\n", ok ? "up" : "FAILED",
+                WiFi.channel(), WiFi.softAPmacAddress().c_str(), (int)WiFi.getTxPower());
 }
 
 static bool startStation(uint32_t waitMs) {

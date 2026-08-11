@@ -107,11 +107,24 @@ body::after{
 .knob[data-vis="solid"] .glow{opacity:1}
 .knob[data-vis="blink"] .glow{opacity:1;animation:blk var(--period) steps(1,end) infinite}
 .knob[data-vis="breathe"] .glow{opacity:1;animation:brt var(--period) ease-in-out infinite}
+.knob[data-vis="sos"] .glow{opacity:1;animation:sos 6.8s linear infinite}
 .knob[data-sem="error"]{--halo:rgba(255,45,85,.85)}
 .knob[data-sem="idle"]{--halo:rgba(255,60,95,.22)}
 .knob[data-sem="offline"],.knob[data-sem="setup"]{--halo:rgba(183,148,244,.35)}
 @keyframes blk{0%,49%{opacity:1}50%,100%{opacity:0}}
 @keyframes brt{0%,100%{opacity:.12}50%{opacity:1}}
+/* "... --- ..." — the same timing the firmware uses in setup mode */
+@keyframes sos{
+  0%,2.9%{opacity:1}      2.91%,5.8%{opacity:0}
+  5.81%,8.8%{opacity:1}   8.81%,11.7%{opacity:0}
+  11.71%,14.7%{opacity:1} 14.71%,23.5%{opacity:0}
+  23.51%,32.3%{opacity:1} 32.31%,35.2%{opacity:0}
+  35.21%,44.1%{opacity:1} 44.11%,47%{opacity:0}
+  47.01%,55.8%{opacity:1} 55.81%,64.7%{opacity:0}
+  64.71%,67.6%{opacity:1} 67.61%,70.5%{opacity:0}
+  70.51%,73.5%{opacity:1} 73.51%,76.4%{opacity:0}
+  76.41%,79.4%{opacity:1} 79.41%,100%{opacity:0}
+}
 .knob-cap{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--dim);text-align:center;margin-top:14px}
 
@@ -776,7 +789,7 @@ function render(s){
     error:'error blink',
     idle:'LED says: locked',
     offline:'no connection',
-    setup:'setup mode'
+    setup:'SOS - waiting for setup'
   }[L.state] || 'LED mirror';
   $('#capText').textContent = L.state === 'press' ? 'go!' : '';
 

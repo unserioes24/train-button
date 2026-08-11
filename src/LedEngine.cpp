@@ -81,10 +81,28 @@ static uint16_t gamma16(uint8_t pct, float factor) {
   return (uint16_t)(f * f * PWM_MAX + 0.5f);
 }
 
+// "... --- ..." as alternating on/off durations, starting lit.
+static const uint16_t SOS_STEPS[] = {
+    200, 200, 200, 200, 200, 600,   // S — three dots, then a letter gap
+    600, 200, 600, 200, 600, 600,   // O — three dashes, then a letter gap
+    200, 200, 200, 200, 200, 1400   // S — three dots, then a word gap
+};
+
+static bool sosLit(uint32_t t) {
+  t %= SOS_CYCLE_MS;
+  for (size_t i = 0; i < sizeof(SOS_STEPS) / sizeof(SOS_STEPS[0]); i++) {
+    if (t < SOS_STEPS[i]) return (i % 2) == 0;  // even index = on
+    t -= SOS_STEPS[i];
+  }
+  return false;
+}
+
 uint16_t LedEngine::levelFor(const Pattern& p, uint32_t now) const {
   switch (p.mode) {
     case LED_SOLID:
       return gamma16(p.bright, 1.0f);
+    case LED_SOS:
+      return sosLit(now) ? gamma16(p.bright, 1.0f) : 0;
     case LED_BLINK:
       return (now % p.period) < (uint32_t)(p.period / 2) ? gamma16(p.bright, 1.0f) : 0;
     case LED_BREATHE: {
@@ -116,6 +134,7 @@ const char* LedEngine::visual() const {
     case LED_SOLID:   return "solid";
     case LED_BREATHE: return "breathe";
     case LED_BLINK:   return "blink";
+    case LED_SOS:     return "sos";
     default:          return "off";
   }
 }

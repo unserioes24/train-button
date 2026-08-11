@@ -14,12 +14,17 @@
 #define PIN_RGB    48  // the board's own WS2812, if it has one
 
 // LED pattern modes, shared between config and the LED engine.
+// LED_SOS is used by the firmware only — it is not offered in the web interface.
 enum LedMode : uint8_t {
   LED_OFF     = 0,
   LED_SOLID   = 1,
   LED_BREATHE = 2,
-  LED_BLINK   = 3
+  LED_BLINK   = 3,
+  LED_SOS     = 4
 };
+
+// One full "... --- ..." takes this long.
+#define SOS_CYCLE_MS 6800
 
 struct Settings {
   // --- network ---
