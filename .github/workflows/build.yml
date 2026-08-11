@@ -31,7 +31,9 @@ jobs:
           restore-keys: pio-${{ runner.os }}-
 
       - name: Install PlatformIO
-        run: pip install --upgrade platformio
+        # esptool is pinned: it lives inside PlatformIO's own virtualenv, not on
+        # the system python, and its CLI changed spelling in 5.x.
+        run: pip install --upgrade platformio "esptool==4.8.1"
 
       - name: Build
         run: pio run -e esp32-s3-mini
@@ -40,7 +42,11 @@ jobs:
         run: |
           set -eu
           OUT=.pio/build/esp32-s3-mini
-          BOOT_APP0=$(find ~/.platformio/packages/framework-arduinoespressif32/tools/partitions -name boot_app0.bin | head -n1)
+          BOOT_APP0=$(find ~/.platformio/packages/framework-arduinoespressif32/tools/partitions \
+                        -name boot_app0.bin | head -n1)
+          for f in "$OUT/bootloader.bin" "$OUT/partitions.bin" "$BOOT_APP0" "$OUT/firmware.bin"; do
+            [ -f "$f" ] || { echo "missing build output: $f"; exit 1; }
+          done
           python -m esptool --chip esp32s3 merge_bin \
             -o train-button-factory.bin \
             --flash_mode dio --flash_freq 80m --flash_size 4MB \
