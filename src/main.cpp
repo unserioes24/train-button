@@ -256,8 +256,9 @@ static void startSetupMode() {
   snprintf(ap, sizeof(ap), "TrainButton-%02X%02X",
            (uint8_t)(chip >> 32), (uint8_t)(chip >> 40));
 
-  WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1),
-                    IPAddress(255, 255, 255, 0));
+  // No softAPConfig() here: 192.168.4.1/24 is the default anyway, and calling it
+  // before softAP() has been seen to leave the DHCP server down on core 3.x —
+  // which looks exactly like "it will not connect" from a phone.
   // Open and visible: the access point only lives until Wi-Fi is configured,
   // and a password nobody can look up would just lock you out.
   bool ok = WiFi.softAP(ap, nullptr, ch, 0, 4);
@@ -266,6 +267,13 @@ static void startSetupMode() {
     Serial.printf("[wifi] a device joined the setup network (%d connected)\n",
                   WiFi.softAPgetStationNum());
   }, ARDUINO_EVENT_WIFI_AP_STACONNECTED);
+
+  // Association is not the same as a usable connection — this is the event that
+  // proves DHCP handed out an address.
+  WiFi.onEvent([](WiFiEvent_t, WiFiEventInfo_t info) {
+    Serial.printf("[wifi] handed out %s\n",
+                  IPAddress(info.wifi_ap_staipassigned.ip.addr).toString().c_str());
+  }, ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED);
 
   LOCK();
   state.setupMode = true;

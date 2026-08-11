@@ -321,7 +321,10 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
           <button class="btn ghost" id="btnScan" type="button">Scan</button></div>
         </div>
         <div class="f"><label for="pass">Wi-Fi password</label>
-          <input type="password" id="pass" autocomplete="off" placeholder="leave empty to keep">
+          <div class="inline">
+            <input type="password" id="pass" autocomplete="off" placeholder="leave empty to keep">
+            <button class="btn ghost" type="button" data-eye="pass">Show</button>
+          </div>
           <span class="sub">An empty field keeps the stored password.</span>
         </div>
       </div>
@@ -336,7 +339,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
         <div class="f wide"><label for="token">Token</label>
           <div class="inline">
             <input type="password" id="token" placeholder="leave empty to keep" spellcheck="false" autocomplete="off">
-            <button class="btn ghost" type="button" id="btnEye">Show</button>
+            <button class="btn ghost" type="button" data-eye="token">Show</button>
           </div>
           <span class="sub" id="tokState">—</span>
         </div>
@@ -344,7 +347,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
 
       <div class="row">
         <button class="btn primary" data-save="setup">Save and connect</button>
-        <button class="btn" type="button" id="btnTestApi">Test connection</button>
+        <span class="note">The status at the top of this page shows whether the server accepts the token.</span>
       </div>
     </div>
   </section>
@@ -651,10 +654,11 @@ document.addEventListener('click', async e => {
   b.disabled = false;
 });
 
-$('#btnEye').addEventListener('click', () => {
-  const t = $('#token'), show = t.type === 'password';
-  t.type = show ? 'text' : 'password';
-  $('#btnEye').textContent = show ? 'Hide' : 'Show';
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-eye]'); if(!b) return;
+  const f = $('#' + b.dataset.eye), show = f.type === 'password';
+  f.type = show ? 'text' : 'password';
+  b.textContent = show ? 'Hide' : 'Show';
 });
 
 /* ---- Wi-Fi scan ---- */
@@ -685,15 +689,6 @@ $('#btnScan').addEventListener('click', async () => {
 });
 
 /* ---- actions ---- */
-$('#btnTestApi').addEventListener('click', async () => {
-  const b = $('#btnTestApi'); b.disabled = true;
-  try{
-    const r = await api('/api/test-connection', {method:'POST'});
-    toast(r.ok ? ('Connected as ' + (r.username || 'unknown') + '.')
-               : ('Server did not answer as expected: ' + (r.error || r.code)), r.ok ? 'ok' : 'err');
-  }catch(err){ toast('Test failed: ' + err.message, 'err'); }
-  b.disabled = false;
-});
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-test]'); if(!b) return;
   try{

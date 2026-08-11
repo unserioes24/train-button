@@ -63,6 +63,20 @@ String strOrEmpty(JsonVariantConst v) {
   return v.is<const char*>() && v.as<const char*>() ? String(v.as<const char*>()) : String();
 }
 
+// Read the body through getString(): the backend answers with
+// Transfer-Encoding: chunked, and getStream() hands out the raw framing, which
+// ArduinoJson cannot parse. getString() unwraps the chunks for us.
+bool readJson(HTTPClient& http, JsonDocument& doc) {
+  String body = http.getString();
+  DeserializationError err = deserializeJson(doc, body);
+  if (err) {
+    Serial.printf("[api] cannot parse %d byte body: %s | %.80s\n", body.length(), err.c_str(),
+                  body.c_str());
+    return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 bool TrainApi::fetchStatus(const ApiConfig& cfg, ApiState& out) {
@@ -91,9 +105,8 @@ bool TrainApi::fetchStatus(const ApiConfig& cfg, ApiState& out) {
     return false;
   }
 
-  JsonDocument         doc;
-  DeserializationError err = deserializeJson(doc, req.http.getStream());
-  if (err) {
+  JsonDocument doc;
+  if (!readJson(req.http, doc)) {
     out.ok    = false;
     out.error = "Unreadable response";
     return false;
@@ -137,7 +150,7 @@ PressResult TrainApi::press(const ApiConfig& cfg) {
   }
 
   JsonDocument doc;
-  bool         parsed = !deserializeJson(doc, req.http.getStream());
+  bool         parsed = readJson(req.http, doc);
   if (parsed) {
     res.username         = strOrEmpty(doc["username"]);
     res.secondsRemaining = doc["secondsRemaining"] | 0L;

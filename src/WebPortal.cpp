@@ -279,19 +279,6 @@ static void handleLedTest() {
   sendOk();
 }
 
-static void handleTestConnection() {
-  ApiState st;
-  bool     ok = TrainApi::fetchStatus(deviceApiConfig(), st);
-  JsonDocument d;
-  d["ok"]       = ok;
-  d["code"]     = st.code;
-  d["error"]    = st.error;
-  d["username"] = st.username;
-  d["canPress"] = st.canPress;
-  sendJson(200, d);
-  devicePokePoll();
-}
-
 static void handleReboot() {
   sendOk(true);
   deviceScheduleReboot(600);
@@ -329,7 +316,6 @@ void portalBegin() {
   server.on("/api/scan", HTTP_GET, handleScan);
   server.on("/api/press", HTTP_POST, handlePress);
   server.on("/api/led-test", HTTP_POST, handleLedTest);
-  server.on("/api/test-connection", HTTP_POST, handleTestConnection);
   server.on("/api/reboot", HTTP_POST, handleReboot);
   server.on("/api/reset-credentials", HTTP_POST, handleResetCredentials);
   server.on("/api/factory-reset", HTTP_POST, handleFactoryReset);

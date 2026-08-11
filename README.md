@@ -173,7 +173,6 @@ The web interface talks to the device over these routes.
 | `GET` | `/api/scan` | Wi-Fi scan |
 | `POST` | `/api/press` | queue a press |
 | `POST` | `/api/led-test` | preview a pattern on the hardware |
-| `POST` | `/api/test-connection` | one-off backend check |
 | `POST` | `/api/reset-credentials` | clear Wi-Fi, token and server address |
 | `POST` | `/api/reboot`, `/api/factory-reset` | maintenance |
 
