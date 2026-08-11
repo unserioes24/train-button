@@ -215,9 +215,37 @@ static void buttonsLoop() {
 // ---------------------------------------------------------------- wifi
 static uint32_t wifiRetryAt = 0;
 
+// These boards have a small ceramic antenna. In a crowded 2.4 GHz band a weak
+// access point simply drowns, so pick the quietest of the three non-overlapping
+// channels instead of always landing on 1.
+static uint8_t quietestChannel() {
+  int n = WiFi.scanNetworks(false, true);
+  if (n <= 0) return 1;
+
+  int load[12] = {0};
+  for (int i = 0; i < n; i++) {
+    int ch = WiFi.channel(i);
+    if (ch < 1 || ch > 11) continue;
+    // A network bleeds into the two channels either side of its own.
+    for (int c = ch - 2; c <= ch + 2; c++)
+      if (c >= 1 && c <= 11) load[c] += (c == ch) ? 3 : 1;
+  }
+  WiFi.scanDelete();
+
+  uint8_t best = 1;
+  for (uint8_t c : {1, 6, 11})
+    if (load[c] < load[best]) best = c;
+  Serial.printf("[wifi] channel load 1=%d 6=%d 11=%d -> using %d\n", load[1], load[6], load[11], best);
+  return best;
+}
+
 static void startSetupMode() {
   WiFi.persistent(false);
   WiFi.disconnect(true, true);
+  WiFi.mode(WIFI_STA);
+  delay(100);
+  uint8_t ch = quietestChannel();
+
   WiFi.mode(WIFI_AP);
   delay(100);
   WiFi.setTxPower(WIFI_POWER_19_5dBm);  // some of these boards ship very quiet
@@ -230,9 +258,14 @@ static void startSetupMode() {
 
   WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1),
                     IPAddress(255, 255, 255, 0));
-  // Open, visible, channel 1: the access point only lives until Wi-Fi is
-  // configured, and a password nobody can look up would just lock you out.
-  bool ok = WiFi.softAP(ap, nullptr, 1, 0, 4);
+  // Open and visible: the access point only lives until Wi-Fi is configured,
+  // and a password nobody can look up would just lock you out.
+  bool ok = WiFi.softAP(ap, nullptr, ch, 0, 4);
+
+  WiFi.onEvent([](WiFiEvent_t, WiFiEventInfo_t) {
+    Serial.printf("[wifi] a device joined the setup network (%d connected)\n",
+                  WiFi.softAPgetStationNum());
+  }, ARDUINO_EVENT_WIFI_AP_STACONNECTED);
 
   LOCK();
   state.setupMode = true;
