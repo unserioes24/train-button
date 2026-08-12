@@ -3,6 +3,7 @@ name: build
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   release:
     types: [published]
@@ -64,7 +65,20 @@ jobs:
           path: train-button-*.bin
           if-no-files-found: error
 
-      - name: Attach binaries to the release
+      # Pushing a tag is the whole release procedure: this creates the release if
+      # it does not exist yet and attaches the binaries either way.
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          TAG="${GITHUB_REF_NAME}"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" \
+            --title "Train Button $TAG" --generate-notes
+          gh release upload "$TAG" train-button-*.bin --clobber
+
+      - name: Attach binaries to a release made in the web interface
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
